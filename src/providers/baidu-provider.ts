@@ -12,8 +12,17 @@ import type {
   SearchResponse,
   SearchResult,
 } from "../types.js";
+import type { Locator, Page } from "playwright";
 
-const baiduInputSelectors = ["#kw", "input[name='wd']", "textarea[name='wd']"];
+const baiduInputSelectors = [
+  "textarea#chat-textarea",
+  "textarea[placeholder]",
+  "#kw",
+  "input[name='wd']",
+  "textarea[name='wd']",
+];
+
+const baiduResultSelectors = ["#content_left .result", "#content_left .c-container", "#content_left > div"];
 
 export class BaiduProvider implements SearchProvider {
   readonly engine = "baidu" as const;
@@ -47,10 +56,11 @@ export class BaiduProvider implements SearchProvider {
         };
       }
 
-      await inputHandle.click();
+      await inputHandle.scrollIntoViewIfNeeded();
       await inputHandle.fill(input.query);
       await session.page.keyboard.press("Enter");
-      await session.page.waitForLoadState("networkidle", { timeout: input.timeout });
+      await session.page.waitForURL(/\/s(\?|$)/, { timeout: input.timeout });
+      await this.waitForResults(session.page, input.timeout);
 
       const results = await this.extractResults(session.page, input.limit);
       await persistBrowserState(session, input);
@@ -74,15 +84,33 @@ export class BaiduProvider implements SearchProvider {
     }
   }
 
-  private async findSearchInput(page: import("playwright").Page, selectors: string[]) {
+  private async findSearchInput(page: Page, selectors: string[]): Promise<Locator | undefined> {
     for (const selector of selectors) {
-      const handle = await page.$(selector);
-      if (handle) {
-        return handle;
+      const locator = page.locator(selector).first();
+      if ((await locator.count()) === 0) {
+        continue;
+      }
+
+      if (await locator.isVisible().catch(() => false)) {
+        return locator;
       }
     }
 
     return undefined;
+  }
+
+  private async waitForResults(page: Page, timeout: number): Promise<void> {
+    await page
+      .waitForFunction(
+        (selectors) =>
+          selectors.some((selector) => {
+            const element = document.querySelector(selector);
+            return element instanceof HTMLElement && element.offsetParent !== null;
+          }),
+        baiduResultSelectors,
+        { timeout },
+      )
+      .catch(() => undefined);
   }
 
   private async detectBlock(url: string, html: string): Promise<string | undefined> {

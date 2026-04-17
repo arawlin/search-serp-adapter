@@ -22,6 +22,9 @@ program
   .action(async (query: string, options: SearchRequest) => {
     try {
       const result = await searchWithProvider({ ...options, query });
+      if (result.warning && result.results.length === 0) {
+        process.exitCode = 1;
+      }
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
