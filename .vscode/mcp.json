@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "search-serp-adapter": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/dist/src/mcp-server.js"
+      ]
+    }
+  }
+}
