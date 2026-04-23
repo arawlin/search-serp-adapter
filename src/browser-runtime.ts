@@ -4,6 +4,7 @@ import {
   type Browser,
   type BrowserContext,
   type BrowserContextOptions,
+  type LaunchOptions,
   type Page,
 } from "playwright";
 import * as fs from "node:fs";
@@ -11,27 +12,17 @@ import * as path from "node:path";
 import logger from "./logger.js";
 import type { BrowserLaunchRequest, SearchEngine } from "./types.js";
 
-const browserArgs = [
-  "--disable-blink-features=AutomationControlled",
-  "--disable-features=IsolateOrigins,site-per-process",
-  "--disable-site-isolation-trials",
-  "--disable-web-security",
-  "--no-sandbox",
-  "--disable-setuid-sandbox",
-  "--disable-dev-shm-usage",
-  "--disable-gpu",
-  "--disable-background-networking",
-  "--disable-background-timer-throttling",
-  "--disable-renderer-backgrounding",
-  "--force-color-profile=srgb",
-];
-
 export interface BrowserSession {
   browser: Browser;
   context: BrowserContext;
   page: Page;
   stateFilePath: string;
   browserOwned: boolean;
+}
+
+export interface BrowserSessionOptions {
+  sharedBrowser?: Browser;
+  launchOptions?: LaunchOptions;
 }
 
 export function getEngineHomeUrl(engine: SearchEngine): string {
@@ -76,7 +67,6 @@ function buildContextOptions(
 async function applyAntiBotScripts(context: BrowserContext, page: Page): Promise<void> {
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => false });
-    Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
     Object.defineProperty(navigator, "languages", {
       get: () => ["zh-CN", "zh", "en-US", "en"],
     });
@@ -85,25 +75,20 @@ async function applyAntiBotScripts(context: BrowserContext, page: Page): Promise
     window.chrome = { runtime: {} };
   });
 
-  await page.addInitScript(() => {
-    Object.defineProperty(window.screen, "width", { get: () => 1920 });
-    Object.defineProperty(window.screen, "height", { get: () => 1080 });
-    Object.defineProperty(window.screen, "colorDepth", { get: () => 24 });
-  });
+  await page.addInitScript(() => undefined);
 }
 
 export async function openBrowserSession(
   request: BrowserLaunchRequest,
-  sharedBrowser?: Browser,
+  options: BrowserSessionOptions = {},
 ): Promise<BrowserSession> {
   const stateFilePath = getStateFilePath(request.engine, request.stateDir);
   const browser =
-    sharedBrowser ??
+    options.sharedBrowser ??
     (await chromium.launch({
       headless: request.headless,
       timeout: request.timeout * 2,
-      args: browserArgs,
-      ignoreDefaultArgs: ["--enable-automation"],
+      ...options.launchOptions,
     }));
 
   const context = await browser.newContext(buildContextOptions(request, stateFilePath));
@@ -114,7 +99,7 @@ export async function openBrowserSession(
     {
       engine: request.engine,
       stateFilePath,
-      reusedBrowser: Boolean(sharedBrowser),
+      reusedBrowser: Boolean(options.sharedBrowser),
     },
     "Browser session opened",
   );
@@ -124,7 +109,7 @@ export async function openBrowserSession(
     context,
     page,
     stateFilePath,
-    browserOwned: !sharedBrowser,
+    browserOwned: !options.sharedBrowser,
   };
 }
 

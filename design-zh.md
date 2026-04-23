@@ -29,7 +29,7 @@ post_date: 2026-04-17
   - google provider
   - baidu provider
 - 基础设施层：
-  - 浏览器运行时工厂
+  - 保持引擎无关的浏览器运行时工厂
   - 状态持久化工具
   - logger
 
@@ -38,7 +38,7 @@ post_date: 2026-04-17
 1. 调用方提供 query 和 engine。
 2. 传输层校验输入。
 3. 应用层从注册表解析 provider。
-4. Provider 启动或复用浏览器上下文。
+4. Provider 构建引擎专属的启动参数，并启动或复用浏览器上下文。
 5. Provider 访问引擎首页并执行搜索。
 6. Provider 从引擎专属选择器中提取标题、链接和摘要。
 7. 应用层返回统一的 SearchResponse。

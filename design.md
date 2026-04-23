@@ -29,7 +29,7 @@ This document is also available in [Chinese](./design-zh.md).
   - google provider
   - baidu provider
 - Infrastructure layer:
-  - browser runtime factory
+  - browser runtime factory that stays engine-agnostic
   - state persistence helpers
   - logger
 
@@ -38,7 +38,7 @@ This document is also available in [Chinese](./design-zh.md).
 1. Caller provides query and engine.
 2. Transport validates inputs.
 3. Application resolves provider from registry.
-4. Provider launches or reuses browser context.
+4. Provider builds engine-specific launch options and launches or reuses browser context.
 5. Provider navigates to the engine home page and performs the search.
 6. Provider extracts titles, links, and snippets from engine-specific selectors.
 7. Application returns normalized SearchResponse.

@@ -98,7 +98,7 @@ node dist/src/index.js --engine baidu --limit 5 "search query"
 - --state-dir <path>
   - Directory for persisted browser state
 - --no-headless
-  - Launch headed browser mode
+  - Launch headed browser mode. When Google returns a block page, the adapter waits for manual verification, then saves browser state and continues
 - --no-save-state
   - Disable state persistence
 
@@ -168,6 +168,19 @@ To add a new search engine:
 - Search engine markup changes can break selectors.
 - Verification or block pages are only detected heuristically in the initial implementation.
 - The first iteration focuses on normalized search results, not raw HTML export.
+
+## Google Blocking Notes
+
+- Google may return a sorry or reCAPTCHA page when it detects automated traffic.
+- The adapter now returns an explicit warning when that page is detected after query submission.
+- If you run in headed mode, the adapter keeps the browser open on block pages, waits for you to complete the verification manually, and then saves browser-state/google-browser-state.json automatically.
+- If blocks continue after verification, the issue is usually IP reputation rather than selectors. Retry later or switch the outbound IP.
+
+Example:
+
+```bash
+node dist/src/index.js --engine google --no-headless "助记词"
+```
 
 ## Related Docs
 

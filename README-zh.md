@@ -98,7 +98,7 @@ node dist/src/index.js --engine baidu --limit 5 "search query"
 - --state-dir <path>
   - 持久化浏览器状态目录
 - --no-headless
-  - 使用有界面浏览器模式
+  - 使用有界面浏览器模式。若 Google 拦截，程序会等待你手动验证，完成后自动保存浏览器状态并继续
 - --no-save-state
   - 禁用状态持久化
 
@@ -168,6 +168,19 @@ Claude Desktop 配置示例：
 - 搜索引擎页面结构变化可能导致选择器失效。
 - 当前版本对验证页或拦截页的识别仍然是启发式处理。
 - 第一版聚焦于标准化搜索结果，不包含原始 HTML 导出能力。
+
+## Google 拦截说明
+
+- 当 Google 识别到自动化流量时，可能会返回 sorry 或 reCAPTCHA 验证页。
+- 适配器现在会在提交查询后显式检测这类页面，并返回更明确的 warning。
+- 如果你使用有界面模式，程序会在拦截页保持浏览器打开，等待你手动完成验证，然后自动保存 browser-state/google-browser-state.json 并继续执行。
+- 如果完成验证后仍持续被拦截，问题通常不在 selector，而在出口 IP 信誉。此时应稍后重试，或更换出口 IP。
+
+示例：
+
+```bash
+node dist/src/index.js --engine google --no-headless "助记词"
+```
 
 ## 相关文档
 

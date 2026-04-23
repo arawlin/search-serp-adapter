@@ -12,7 +12,7 @@ import type {
   SearchResponse,
   SearchResult,
 } from "../types.js";
-import type { Locator, Page } from "playwright";
+import type { LaunchOptions, Locator, Page } from "playwright";
 
 const baiduInputSelectors = [
   "textarea#chat-textarea",
@@ -24,6 +24,14 @@ const baiduInputSelectors = [
 
 const baiduResultSelectors = ["#content_left .result", "#content_left .c-container", "#content_left > div"];
 
+const baiduBrowserArgs = ["--window-size=1920,1080", "--force-color-profile=srgb"];
+
+const linuxSandboxBypassArgs = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+];
+
 export class BaiduProvider implements SearchProvider {
   readonly engine = "baidu" as const;
 
@@ -33,7 +41,10 @@ export class BaiduProvider implements SearchProvider {
     input: ResolvedSearchRequest,
     options: SearchExecutionOptions = {},
   ): Promise<SearchResponse> {
-    const session = await openBrowserSession(input, options.sharedBrowser);
+    const session = await openBrowserSession(input, {
+      sharedBrowser: options.sharedBrowser,
+      launchOptions: this.buildLaunchOptions(input),
+    });
 
     try {
       await session.page.goto(getEngineHomeUrl(this.engine), {
@@ -82,6 +93,20 @@ export class BaiduProvider implements SearchProvider {
     } finally {
       await closeBrowserSession(session);
     }
+  }
+
+  private buildLaunchOptions(input: ResolvedSearchRequest): LaunchOptions {
+    const args = [...baiduBrowserArgs];
+
+    if (process.platform === "linux") {
+      args.push(...linuxSandboxBypassArgs);
+    }
+
+    return {
+      headless: input.headless,
+      timeout: input.timeout * 2,
+      args,
+    };
   }
 
   private async findSearchInput(page: Page, selectors: string[]): Promise<Locator | undefined> {
